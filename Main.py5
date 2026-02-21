@@ -1,0 +1,111 @@
+import discord
+from discord.ext import commands
+import requests
+import os
+import random
+
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix='$', intents=intents)
+
+@bot.event
+async def on_ready():
+    print(f'We have logged in as {bot.user}')
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send(f'Hi! I am a bot {bot.user}!')
+
+@bot.command()
+async def heh(ctx, count_heh = 5):
+    await ctx.send("he" * count_heh)
+
+@bot.command(name="meme")
+async def meme(ctx):
+    folder = "image"  # pastikan folder 'images' ada di lokasi yang sama dengan main.py
+
+    # cek apakah folder ada
+    if not os.path.exists(folder):
+        await ctx.send("Folder 'image' tidak ditemukan.")
+        return
+
+    # ambil semua file dari folder
+    files = os.listdir(folder)
+
+    # filter hanya file gambar
+    image_files = [f for f in files if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+    if not image_files:
+        await ctx.send("Tidak ada file gambar di folder 'image'.")
+        return
+
+    # pilih file acak
+    chosen_file = random.choice(image_files)
+
+    # kirim file ke Discord
+    with open(os.path.join(folder, chosen_file), 'rb') as f:
+        picture = discord.File(f)
+        await ctx.send(file=picture)
+
+
+# API: Random Dog
+def get_dog_image_url():
+    url = 'https://random.dog/woof.json'
+    res = requests.get(url)
+    data = res.json()
+    return data['url']
+
+@bot.command()
+async def dog(ctx):
+    image_url = get_dog_image_url()
+    await ctx.send(image_url)
+
+# API: Random Fox
+def get_fox_image_url():
+    url = 'https://randomfox.ca/floof/'
+    res = requests.get(url)
+    data = res.json()
+    return data['image']
+
+@bot.command()
+async def fox(ctx):
+    image_url = get_fox_image_url()
+    await ctx.send(image_url)
+
+# API: Pokémon
+def get_pokemon_sprite(name):
+    url = f'https://pokeapi.co/api/v2/pokemon/{name.lower()}'
+    res = requests.get(url)
+    if res.status_code != 200:
+        return None
+    data = res.json()
+    return data['sprites']['front_default']
+
+@bot.command()
+async def pokemon(ctx, name: str):
+    sprite_url = get_pokemon_sprite(name)
+    if sprite_url:
+        await ctx.send(sprite_url)
+    else:
+        await ctx.send(f"Pokémon {name} tidak ditemukan!")
+
+# API: Anime (Kitsu)
+def search_anime(query):
+    url = f'https://kitsu.io/api/edge/anime?filter[text]={query}'
+    res = requests.get(url)
+    data = res.json()
+    if len(data['data']) == 0:
+        return None
+    return data['data'][0]['attributes']['titles']['en']
+
+@bot.command()
+async def anime(ctx, query: str):
+    title = search_anime(query)
+    if title:
+        await ctx.send(f"Anime ditemukan: {title}")
+    else:
+        await ctx.send("Anime tidak ditemukan.")
+
+# jalankan bot dengan token yg benar (jangan pernah bagikan token bot anda ke siapa pun.)
+bot.run("MTQ2OTYzOTcyNzgwMzI3MzI2OQ.GuwjSI.oMwBGtSZTNrqMQJd--S4PYbsj3XGb6AEVa_g3U")
